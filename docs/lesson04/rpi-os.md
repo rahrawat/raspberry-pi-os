@@ -143,7 +143,7 @@ int copy_process(unsigned long fn, unsigned long arg)
     p->priority = current->priority;
     p->state = TASK_RUNNING;
     p->counter = p->priority;
-    p->preempt_count = 1; //disable preemtion untill schedule_tail
+    p->preempt_count = 1; //disable preemtion until schedule_tail
 
     p->cpu_context.x19 = fn;
     p->cpu_context.x20 = arg;
@@ -163,7 +163,7 @@ Now, we are going to examine it in details.
     struct task_struct *p;
 ```
 
-The function starts with disabling preemption and allocating a pointer for the new task. Preemption is disabled because we don't want to be rescheduled to a different task in the middle of the `copy__process` function.  
+The function starts with disabling preemption and allocating a pointer for the new task. Preemption is disabled because we don't want to be rescheduled to a different task in the middle of the `copy_process` function.  
 
 ```
     p = (struct task_struct *) get_free_page();
@@ -177,7 +177,7 @@ Next, a new page is allocated. At the bottom of this page, we are putting the `t
     p->priority = current->priority;
     p->state = TASK_RUNNING;
     p->counter = p->priority;
-    p->preempt_count = 1; //disable preemtion untill schedule_tail
+    p->preempt_count = 1; //disable preemtion until schedule_tail
 ```
 
 After the `task_struct` is allocated, we can initialize its properties.  Priority and initial counter are set based on the current task priority. The state is set to `TASK_RUNNING`, indicating that the new task is ready to be started. `preempt_count` is set to 1, meaning that after the task is executed it should not be rescheduled until it completes some initialization work.
@@ -212,7 +212,7 @@ Now, let's go back to `copy_process`.
 
 Finally, `copy_process` adds the newly created task to the `task` array and enables preemption for the current task.
 
-An important thing to understand about the `copu_process` function is that after it finishes execution, no context switch happens. The function only prepares new `task_struct` and adds it to the `task` array - this task will be executed only after `schedule` function is called.
+An important thing to understand about the `copy_process` function is that after it finishes execution, no context switch happens. The function only prepares new `task_struct` and adds it to the `task` array — this task will be executed only after `schedule` function is called.
 
 ### Who calls `schedule`?
 
@@ -278,7 +278,7 @@ The algorithm works like the following:
  * The first inner `for` loop iterates over all tasks and tries to find a task in `TASK_RUNNING` state with the maximum counter. If such task is found and its counter is greater then 0, we immediately break from the outer `while` loop and switch to this task. If no such task is found this means that no tasks in `TASK_RUNNING`  state currently exist or all such tasks have 0 counters. In a real OS, the first case might happen, for example, when all tasks are waiting for an interrupt. In this case, the second nested `for` loop is executed. For each task (no matter what state it is in) this loop increases its counter. The counter increase is done in a very smart way:
 
     1. The more iterations of the second `for` loop a task passes, the more its counter will be increased.
-    2. A task counter can newer get larger than `2 * priority` 
+    2. A task counter can never get larger than `2 * priority` 
 
 * Then the process is repeated. If there are at least one task in `TASK_RUNNIG` state, the second iteration of the outer `while` loop will be the last one because after the first iteration all counters are already non-zero. However, if no `TASK_RUNNING` tasks are there, the process is repeated over and over again until some of the tasks will move to `TASK_RUNNING` state. But if we are running on a single CPU, how then a task state can change while this loop is running? The answer is that if some task is waiting for an interrupt, this interrupt can happen while `schedule` function is executed and interrupt handler can change the state of the task. This actually explains why interrupts must be enabled during `schedule` execution. This also demonstrates an important distinction between disabling interrupts and disabling preemption. `schedule` disables preemption for the duration of the whole function. This ensures that nester` schedule` will not be called while we are in the middle of the original function execution. However, interrupts can legally happen during `schedule` function execution.
 
@@ -374,7 +374,7 @@ Function returns to the location pointed to by the link register (`x30`) If we a
 
 ### How scheduling works with exception entry/exit?
 
-In the previous lesson, we have seen how [kernel_entry](https://github.com/s-matyukevich/raspberry-pi-os/blob/master/src/lesson04/src/entry.S#L17) and [kernel_exit](https://github.com/s-matyukevich/raspberry-pi-os/blob/master/src/lesson04/src/entry.S#L4) macros are used to save and restore the processor state. After the scheduler has been introduced, a new problem arrives: now it becomes fully legal to enter an interrupt as one task and leave it as a different one. This is a problem, because `eret` instruction, which we are using to return from an interrupts, relies on the fact that return address should be stored in `elr_el1` and processor state in `spsr_el1` registers. So, if we want to switch tasks while processing an interrupt, we must save and restore those 2 registers alongside with all other general purpose registers. The code that does this is very straightforward, you can find the save part [here](https://github.com/s-matyukevich/raspberry-pi-os/blob/master/src/lesson04/src/entry.S#L35) and restore [here](https://github.com/s-matyukevich/raspberry-pi-os/blob/master/src/lesson04/src/entry.S#L35)
+In the previous lesson, we have seen how [kernel_entry](https://github.com/s-matyukevich/raspberry-pi-os/blob/master/src/lesson04/src/entry.S#L17) and [kernel_exit](https://github.com/s-matyukevich/raspberry-pi-os/blob/master/src/lesson04/src/entry.S#L4) macros are used to save and restore the processor state. After the scheduler has been introduced, a new problem arrives: now it becomes fully legal to enter an interrupt as one task and leave it as a different one. This is a problem, because `eret` instruction, which we are using to return from an interrupts, relies on the fact that return address should be stored in `elr_el1` and processor state in `spsr_el1` registers. So, if we want to switch tasks while processing an interrupt, we must save and restore those 2 registers alongside with all other general purpose registers. The code that does this is very straightforward, you can find the save part [here](https://github.com/s-matyukevich/raspberry-pi-os/blob/master/src/lesson04/src/entry.S#L35) and restore [here](https://github.com/s-matyukevich/raspberry-pi-os/blob/master/src/lesson04/src/entry.S#L46)
 
 ### Tracking system state during a context switch
 
@@ -441,7 +441,7 @@ We have already examined all source code related to the context switch. However,
 1. [cpu_switch_to](https://github.com/s-matyukevich/raspberry-pi-os/blob/master/src/lesson04/src/sched.S#L4) saves calee-saved registers in the init task `cpu_context`, wich is located inside the kernel image.
 1. `cpu_switch_to` restores calee-saved registers from task 1 `cpu_context`. `sp` now points to `0x00401000`, link register to [ret_from_fork](https://github.com/s-matyukevich/raspberry-pi-os/blob/master/src/lesson04/src/entry.S#L146) function, `x19` contains a pointer to [process](https://github.com/s-matyukevich/raspberry-pi-os/blob/master/src/lesson04/src/kernel.c#L9) function and `x20` a pointer to string "12345", wich is located somewhere in the kernel image.
 1. `cpu_switch_to` calls `ret` instruction, which jums to the `ret_from_fork` function.
-1. `ret_from_fork` reads `x19` and `x20` registers and  calls `process` function with the argument "12345". After `process` function starts to execute it stack begins to grow.
+1. `ret_from_fork` reads `x19` and `x20` registers and  calls `process` function with the argument "12345". After `process` function starts to execute its stack begins to grow.
     ```
              0 +------------------+ 
                | kernel image     |
@@ -657,9 +657,16 @@ We have already examined all source code related to the context switch. However,
     ```
 1. `kernel_exit` executes `eret` instruction witch uses `elr_el1` register to jump back to `process` function. Task 1 resumes it normal execution.
 
-The described above sequence of steps is very important - I personally consider it one of the most important things in the whole tutorial. If you have difficulties with understanding it, I can advise you to work on the exercise number 1 from this lesson.
+The described above sequence of steps is very important — I personally consider it one of the most important things in the whole tutorial. If you have difficulties with understanding it, I can advise you to work on the exercise number 1 from this lesson.
 
 ### Conclusion
 
 We are done with scheduling, but right now our kernel can manage only kernel threads: they are executed at EL1 and can directly access any kernel functions or data. In the next 2 lessons we are going fix this and introduce system calls and virtual memory.
 
+##### Previous Page
+
+3.5 [Interrupt handling: Exercises](../../docs/lesson03/exercises.md)
+
+##### Next Page
+
+4.2 [Process scheduler: Scheduler basic structures](../../docs/lesson04/linux/basic_structures.md)

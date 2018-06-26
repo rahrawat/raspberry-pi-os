@@ -80,16 +80,16 @@ master:
     eret                
 ```
 
-As you can see the code consists mostly of configuring a few system registers. Now we are going to examine those registers one by one. In order to do this we first need to download [AArch64-Reference-Manual](https://developer.arm.com/docs/ddi0487/latest/arm-architecture-reference-manual-armv8-for-armv8-a-architecture-profile) This document contains the detailed specification of the `ARM.v8` architecture. 
+As you can see the code consists mostly of configuring a few system registers. Now we are going to examine those registers one by one. In order to do this we first need to download [AArch64-Reference-Manual](https://developer.arm.com/docs/ddi0487/ca/arm-architecture-reference-manual-armv8-for-armv8-a-architecture-profile). This document contains the detailed specification of the `ARM.v8` architecture. 
 
-#### SCTLR_EL1, System Control Register (EL1), Page 2025 of AArch64-Reference-Manual.
+#### SCTLR_EL1, System Control Register (EL1), Page 2654 of AArch64-Reference-Manual.
 
 ```
     ldr    x0, =SCTLR_VALUE_MMU_DISABLED
     msr    sctlr_el1, x0        
 ```
 
-Here we set the value of the `sctlr_el1` system register. `sctlr_el1` is responsible for configuring different parameters of the processor, when it operates at EL1. For example, it controls whether the cache is enabled and, what is most important for us, whether the MMU (Memory Mapping Unit) is turned on. `sctlr_el1` is accessible from all exception levels higher or equal then EL1 (you can infer this from `_el1` postfix) 
+Here we set the value of the `sctlr_el1` system register. `sctlr_el1` is responsible for configuring different parameters of the processor, when it operates at EL1. For example, it controls whether the cache is enabled and, what is most important for us, whether the MMU (Memory Mapping Unit) is turned on. `sctlr_el1` is accessible from all exception levels higher or equal than EL1 (you can infer this from `_el1` postfix) 
 
 `SCTLR_VALUE_MMU_DISABLED` constant is defined [here](https://github.com/s-matyukevich/raspberry-pi-os/blob/master/src/lesson02/include/arm/sysregs.h#L16) Individual bits of this value are defined like this:
 
@@ -97,10 +97,10 @@ Here we set the value of the `sctlr_el1` system register. `sctlr_el1` is respons
 * `#define SCTLR_EE_LITTLE_ENDIAN          (0 << 25)` Exception [Endianness](https://en.wikipedia.org/wiki/Endianness) This field controls endianess of explicit data access at EL1. We are going to configure the processor to work only with `little-endian` format.
 * `#define SCTLR_EOE_LITTLE_ENDIAN         (0 << 24)` Similar to previous field but this one controls endianess of explicit data access at EL0, instead of EL1. 
 * `#define SCTLR_I_CACHE_DISABLED          (0 << 12)` Disable instruction cache. We are going to disable all caches for simplicity. You can find more information about data and instruction caches [here](https://stackoverflow.com/questions/22394750/what-is-meant-by-data-cache-and-instruction-cache).
-* `#define SCTLR_D_CACHE_DISABLED          (0 << 2)` Disable data chache.
+* `#define SCTLR_D_CACHE_DISABLED          (0 << 2)` Disable data cache.
 * `#define SCTLR_MMU_DISABLED              (0 << 0)` Disable MMU. MMU must be disabled until the lesson 6, where we are going to prepare page tables and start working with virtual memory.
 
-#### HCR_EL2, Hypervisor Configuration Register (EL2), Page 1923 of AArch64-Reference-Manual. 
+#### HCR_EL2, Hypervisor Configuration Register (EL2), Page 2487 of AArch64-Reference-Manual. 
 
 ```
     ldr    x0, =HCR_VALUE
@@ -109,7 +109,7 @@ Here we set the value of the `sctlr_el1` system register. `sctlr_el1` is respons
 
 We are not going to implement our own [hypervisor](https://en.wikipedia.org/wiki/Hypervisor). Stil we need to use this register because, among other settings, it controls the execution state at EL1. Execution state must be `AArch64` and not `AArch32`. This is configured [here](https://github.com/s-matyukevich/raspberry-pi-os/blob/master/src/lesson02/include/arm/sysregs.h#L22) 
 
-#### SCR_EL3, Secure Configuration Register (EL3), Page 2022 of AArch64-Reference-Manual.
+#### SCR_EL3, Secure Configuration Register (EL3), Page 2648 of AArch64-Reference-Manual.
 
 ```
     ldr    x0, =SCR_VALUE
@@ -118,7 +118,7 @@ We are not going to implement our own [hypervisor](https://en.wikipedia.org/wiki
 
 This register is responsible for configuring security settings. For example, it controls whether all lower levels are executed in "secure" or "nonsecure" state. It also controls execution state at EL2. [here](https://github.com/s-matyukevich/raspberry-pi-os/blob/master/src/lesson02/include/arm/sysregs.h#L26) we set that EL2  will execute at `AArch64` state, and all lower exception levels will be "non secure". 
 
-#### SPSR_EL3, Saved Program Status Register (EL3), Page 288 of AArch64-Reference-Manual.
+#### SPSR_EL3, Saved Program Status Register (EL3), Page 389 of AArch64-Reference-Manual.
 
 ```
     ldr    x0, =SPSR_VALUE
@@ -126,7 +126,7 @@ This register is responsible for configuring security settings. For example, it 
 ```
 
 This register should be already familiar to you - we mentioned it when discussed the process of changing exception levels. `spsr_el3` contains processor state, that will be restored after we execute `eret` instruction.
-It worth saying a few words explaining what processor state is. Processor state includes the following information:
+It is worth saying a few words explaining what processor state is. Processor state includes the following information:
 
 * **Condition Flags** Those flags contains information about previously executed operation: whether the result was negative (N flag), zero (A flag), has unsigned overflow (C flag) or has signed overflow (V flag). Values of those flags can be used in conditional branch instructions. For example, `b.eq` instruction will jump to the provided label only if the result of the last comparison operation is equal to 0. The processor checks this by testing whether Z flag is set to 1.
 
@@ -139,7 +139,7 @@ Usually `spsr_el3` is saved automatically when an exception is taken to EL3. How
 * `#define SPSR_MASK_ALL        (7 << 6)` After we change EL to EL1 all types of interrupts will be masked (or disabled, which is the same).
 * `#define SPSR_EL1h        (5 << 0)` At EL1 we can either use our own dedicated stack pointer or use EL0 stack pointer. `EL1h` mode means that we are using EL1 dedicated stack pointer. 
 
-#### ELR_EL3, Exception Link Register (EL3), Page 260 of AArch64-Reference-Manual.
+#### ELR_EL3, Exception Link Register (EL3), Page 351 of AArch64-Reference-Manual.
 
 ```
     adr    x0, el1_entry        
@@ -153,3 +153,11 @@ Usually `spsr_el3` is saved automatically when an exception is taken to EL3. How
 ### Conclusion
 
 That is pretty much it: when we enter `el1_entry` function the execution should be already at EL1 mode. Go ahead and try it out! 
+
+##### Previous Page
+
+1.5 [Kernel Initialization: Exercises](../../docs/lesson01/exercises.md)
+
+##### Next Page
+
+2.2 [Processor initialization: Linux](../../docs/lesson02/linux.md)

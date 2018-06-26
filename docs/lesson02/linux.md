@@ -7,7 +7,7 @@ You may find this chapter a little bit boring because it mostly discusses differ
 1. It is necessary to understand the interface that the hardware provides to the software. Just by knowing this interface you will be able, in many cases, to deconstruct how a particular kernel feature is implemented and how software and hardware collaborate to implement this feature.
 1. Different options in the system register are usually related to enabling/disabling various hardware features. If you learn what different system registers an ARM processor have you will already have an idea what kind of functionality it supports.
 
-Ok, not let's resume our investigation of the `stext` function.
+Ok, now let's resume our investigation of the `stext` function.
 
 ```
 ENTRY(stext)
@@ -206,7 +206,7 @@ When the processor is executing in 32-bit execution mode, there is a concept of 
     msr    mdcr_el2, x3            // Configure debug traps
 ```
 
-This piece of code is responsible for configuring `mdcr_el2` (Monitor Debug Configuration Register (EL2)). This register is responsible for setting different debug traps, related to the virtualization extension.  I am going to leave the details of this code block unexplained because debug and tracing are a little bit out of scope for our discussion. If you are interested in details, I can recommend you to read the description of `mdcr_el2` register on page `2114` of the [AArch64-Reference-Manual](https://developer.arm.com/docs/ddi0487/latest/arm-architecture-reference-manual-armv8-for-armv8-a-architecture-profile)
+This piece of code is responsible for configuring `mdcr_el2` (Monitor Debug Configuration Register (EL2)). This register is responsible for setting different debug traps, related to the virtualization extension.  I am going to leave the details of this code block unexplained because debug and tracing are a little bit out of scope for our discussion. If you are interested in details, I can recommend you to read the description of `mdcr_el2` register on page `2810` of the [AArch64-Reference-Manual](https://developer.arm.com/docs/ddi0487/ca/arm-architecture-reference-manual-armv8-for-armv8-a-architecture-profile).
 
 ```
     /* Stage-2 translation */
@@ -300,3 +300,10 @@ The last 3 functions are very important, but they all are related to virtual mem
 
 In this chapter, we briefly discussed how a processor is initialized when the Linux kernel is booted. In the next lesson, we will continue to closely work with the ARM processor and investigate a vital topic for any OS: interrupt handling.
  
+##### Previous Page
+
+2.1 [Processor initialization: RPi OS](../../docs/lesson02/rpi-os.md)
+
+##### Next Page
+
+2.3 [Processor initialization: Exercises](../../docs/lesson02/exercises.md)
